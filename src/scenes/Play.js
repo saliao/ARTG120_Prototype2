@@ -1,124 +1,232 @@
 class Play extends Phaser.Scene {
     constructor() {
         super("playScene");
+        this.inputting = false;
+        this.currentNumber = "";
+        this.numbersArray = [];
+        this.currentNumberText = null;
+        this.entryLineText = null;
+        this.round = 0;
     }
     preload() {
         // load images/tile sprites
-        this.load.image('rocket', './assets/rocket.png');
-        this.load.image('spaceship', './assets/spaceship.png');
-        this.load.image('starfield', './assets/starfield.png');
+        this.load.image('back', './assets/back1.png');
         // load spritesheet
-        this.load.spritesheet('explosion', './assets/explosion.png', {frameWidth: 64, frameHeight: 32, startFrame: 0, endFrame: 9});
+        //this.load.spritesheet('', './assets/.png', {frameWidth: 0, frameHeight: 0, startFrame: 0, endFrame: 0});
     }
     create() {
         // place title sprite
-        this.starfield = this.add.tileSprite(0, 0, 640, 480, 'starfield').setOrigin(0, 0);
-        // green UI background
-        this.add.rectangle(0, borderUISize + borderPadding, game.config.width, borderUISize * 2, 0x00FF00).setOrigin(0, 0);
-        // white borders
-        this.add.rectangle(0, 0, game.config.width, borderUISize, 0xFFFFFF).setOrigin(0, 0);
-        this.add.rectangle(0, game.config.height - borderUISize, game.config.width, borderUISize, 0xFFFFFF).setOrigin(0, 0);
-        this.add.rectangle(0, 0, borderUISize, game.config.height, 0xFFFFFF).setOrigin(0, 0);
-        this.add.rectangle(game.config.width - borderUISize, 0, borderUISize, game.config.height, 0xFFFFFF).setOrigin(0, 0);
-        // add rocket (p1)
-        this.p1Rocket = new Rocket(this, game.config.width/2, game.config.height - borderUISize - borderPadding, 'rocket').setOrigin(0.5, 0);
-        // add spaceships (x3)
-        this.ship01 = new Spaceship(this, game.config.width + borderUISize*6, borderUISize*4, 'spaceship', 0, 30).setOrigin(0, 0);
-        this.ship02 = new Spaceship(this, game.config.width + borderUISize*3, borderUISize*5 + borderPadding*2, 'spaceship', 0, 20).setOrigin(0,0);
-        this.ship03 = new Spaceship(this, game.config.width, borderUISize*6 + borderPadding*4, 'spaceship', 0, 10).setOrigin(0,0);
-        // define keys
-        keyF = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
-        keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
-        keyLEFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
-        keyRIGHT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+        //this.sheetPlaceHolder = this.add.tileSprite(0, 0, 640, 480, '').setOrigin(0, 0);
         // animation config
-        this.anims.create({
-            key: 'explode',
-            frames: this.anims.generateFrameNumbers('explosion', { start: 0, end: 9, first: 0}),
-            frameRate: 30
-        });
-        // initialize score
-        this.p1Score = 0;
-        // display score
-        let scoreConfig = {
-            fontFamily: 'Courier',
-            fontSize: '28px',
-            backgroundColor: '#F3B141',
-            color: '#843605',
-            align: 'right',
-            padding: {
-            top: 5,
-            bottom: 5,
-            },
-            fixedWidth: 100
-        }
-        this.scoreLeft = this.add.text(borderUISize + borderPadding, borderUISize + borderPadding*2, this.p1Score, scoreConfig);
-        // GAME OVER flag
-        this.gameOver = false;
-        // 60-second play clock
-        scoreConfig.fixedWidth = 0;
-        this.clock = this.time.delayedCall(game.settings.gameTimer, () => {
-            this.add.text(game.config.width/2, game.config.height/2, 'GAME OVER', scoreConfig).setOrigin(0.5);
-            this.add.text(game.config.width/2, game.config.height/2 + 64, 'Press (R) to Restart or <- for Menu', scoreConfig).setOrigin(0.5);
-            this.gameOver = true;
-        }, null, this);
+        // this.anims.create({
+        //     key: '',
+        //     frames: this.anims.generateFrameNumbers('', { start: 0, end: 0, first: 0}),
+        //     frameRate: 30
+        // });
+
+        // create text objects to display current number and entry line
+        this.currentNumberText = this.add.text(10, 10, this.currentNumber);
+        this.entryLineText = this.add.text(10, 50, "");
+    
+        // add keyboard input
+        this.input.keyboard.on('keydown', this.handleInput, this);
+
+        let bossList;
+        // make test boss
+        let testMoves = [ ["type1", "move1"], ["type2", "move2"], ["type3", "move3"], ["type4", "move4"] ];
+        test = new Boss(this, game.config.width/2, game.config.height, 40, 'back', testMoves, "test", 40).setOrigin(0.5, 0);
+        bossList[0] = test;
+        
+        this.rounds = new StateMachine('new', {
+            newRound: new NewRoundState(),
+            announcment: new AnnoucmentState(),
+            player: new PlayerState(),
+            boss: new BossState(),
+            victory: new VictoryState(),
+        }, [this, bossList[round]]);
     }
     update() {
-        // check key input for restart
-        if (this.gameOver && Phaser.Input.Keyboard.JustDown(keyR)) {
-            this.scene.restart();
-        }
-        if (this.gameOver && Phaser.Input.Keyboard.JustDown(keyLEFT)) {
+        if(this.gameOver && Phaser.Input.Keyboard.JustDown()) {
             this.scene.start("menuScene");
         }
-        this.starfield.tilePositionX -= 4;
-        if (!this.gameOver) {               
-            this.p1Rocket.update();         // update rocket sprite
-            this.ship01.update();           // update spaceships (x3)
-            this.ship02.update();
-            this.ship03.update();
-        } 
-        // check collisions
-        // why it 3-2-1 here Nate T.T
-        if(this.checkCollision(this.p1Rocket, this.ship03)) {
-            this.p1Rocket.reset();
-            this.shipExplode(this.ship03);   
-        }
-        if (this.checkCollision(this.p1Rocket, this.ship02)) {
-            this.p1Rocket.reset();
-            this.shipExplode(this.ship02);
-        }
-        if (this.checkCollision(this.p1Rocket, this.ship01)) {
-            this.p1Rocket.reset();
-            this.shipExplode(this.ship01);
+        if(test.bossHealth == 0) {
+            this.add.text(game.config.width/2, game.config.height/2, 'GAME OVER').setOrigin(0.5);
+            this.add.text(game.config.width/2, game.config.height/2 + 64, 'Press any key to return to menu').setOrigin(0.5);
+            this.gameOver = true;
         }
     }
-    checkCollision(rocket, ship) {
-        // simple AABB checking
-        if(rocket.x < ship.x + ship.width && 
-          rocket.x + rocket.width > ship.x && 
-          rocket.y < ship.y + ship.height &&
-          rocket.height + rocket.y > ship. y) {
-          return true;
-        }
-        else {
-          return false;
-        }
-    }
-    shipExplode(ship) {
-        // temporarily hide ship
-        ship.alpha = 0;                         
-        // create explosion sprite at ship's position
-        let boom = this.add.sprite(ship.x, ship.y, 'explosion').setOrigin(0, 0);
-        boom.anims.play('explode');             // play explode animation
-        boom.on('animationcomplete', () => {    // callback after ani completes
-            ship.reset();                       // reset ship position
-            ship.alpha = 1;                     // make ship visible again
-            boom.destroy();                     // remove explosion sprite
+}
+
+class NewRoundState extends State {
+    enter(scene, boss) {
+        // displays text annoucing what round it is
+        // displays text telling player to press enter to continue
+        let roundText = scene.add.text(10, 10, `Round: ${this.round}`);
+        roundText.setStyle({
+            font: '32px Arial',
+            fill: '#fff'
         });
-        // score add and repaint
-        this.p1Score += ship.points;
-        this.scoreLeft.text = this.p1Score;  
-        this.sound.play('sfx_explosion');     
+
+        let continueText = this.add.text(10, 50, 'Press enter to continue');
+        continueText.setStyle({
+            font: '24px Arial',
+            fill: '#fff'
+        });
+    }
+
+    execute(scene) {
+        const { enter } = scene.keys;
+
+        if(Phaser.Input.Keyboard.JustDown(enter)) {
+            this.stateMachine.transition('announcement');
+            return;
+        }
+    }
+}
+
+class AnnoucmentState extends State {
+    enter(scene, boss) {
+        let move = boss.announcment();
+        // displays text saying: "$boss.name is going to $move!"
+        // displays text telling player to press enter to continue
+        let annoucingText = scene.add.text(10, 10, `${boss.name} is going to ${move}!`);
+        annoucingText.setStyle({
+            font: '32px Arial',
+            fill: '#fff'
+        });
+
+        let continueText = this.add.text(10, 50, 'Press enter to continue');
+        continueText.setStyle({
+            font: '24px Arial',
+            fill: '#fff'
+        });
+    }
+
+    execute(scene, boss) {
+        const { enter } = scene.keys;
+        
+        if(Phaser.Input.Keyboard.JustDown(enter)) {
+            this.stateMachine.transition('player');
+            return;
+        }
+    }
+}
+
+class PlayerState extends State {
+    enter(scene, boss) {
+        // displays text "Player Turn"
+        // "Enter each damage value then press enter"
+        // "Press Enter twice to end players' turn"
+        // creates text box next to boss sprite for live updating typed value
+        let playerTurnText = scene.add.text(10, 10, `Player Turn`);
+        playerTurnText.setStyle({
+            font: '32px Arial',
+            fill: '#fff'
+        });
+
+        let continueText = this.add.text(10, 50, 'Enter each damage value then press enter\nPress Enter twice to end players\' turn');
+        continueText.setStyle({
+            font: '24px Arial',
+            fill: '#fff'
+        });
+    }
+
+    execute(scene, boss) {
+        const { enter } = scene.keys;
+         value;
+        // player inputs numerical value which is displayed in text box
+        // Create a new text input field using the DOMElement plugin
+        const input = this.add.dom(400, 300).createFromHTML(`
+        <input type="number" id="input" value="0" style="font-size: 32px; width: 200px; text-align: center;">`);
+        // Set the focus to the input field so the player can start typing right away
+        input.getChildByID('input').focus();
+        
+        // Add an event listener to the input field for the "keydown" event
+        input.getChildByID('input').addEventListener('keydown', event => {
+            // Check if the key pressed was the "Enter" key
+            if (event.key === 'Enter') {
+                // Get the value of the input field
+                const value = parseInt(event.target.value);
+
+                // Check if the input field is empty
+                if (isNaN(value)) {
+                    // If the input field is empty, transition to the "boss" state
+                    this.stateMachine.transition('boss');
+                    return;
+                }
+
+                // If the input field is not empty, update the text object with the entered value
+                text.setText(`You entered: ${value}`);
+                boss.damage(value);
+                if(boss.bossHealth == 0) {
+                    this.stateMachine.transition('victory');
+                    return;
+                }
+                boss.damage(value);
+                if(boss.bossHealth == 0) {
+                    this.stateMachine.transition('victory');
+                    return;
+                }
+            }
+        });
+    }
+}
+
+class BossState extends State {
+    enter(scene, boss) {
+        let action = boss.turn();
+        // displays text saying: "$boss.name $action"
+        // displays text telling player to press enter to continue
+        let annoucingText = scene.add.text(10, 10, `${boss.name} ${action}!`);
+        annoucingText.setStyle({
+            font: '32px Arial',
+            fill: '#fff'
+        });
+
+        let continueText = this.add.text(10, 50, 'Press enter to continue');
+        continueText.setStyle({
+            font: '24px Arial',
+            fill: '#fff'
+        });
+    }
+
+    execute(scene, boss) {
+        const { enter } = scene.keys;
+        
+        if(Phaser.Input.Keyboard.JustDown(enter)) {
+            this.stateMachine.transition('new');
+            return;
+        }
+    }
+}
+
+class VictoryState extends State {
+    enter(scene, boss) {
+        // displays text saying: "You have slain $boss.name!"
+        // displays text telling player to press enter to continue
+        // sets rounds object value to the next boss in bossList
+        let annoucingText = scene.add.text(10, 10, `You have slain ${boss.name}!`);
+        annoucingText.setStyle({
+            font: '32px Arial',
+            fill: '#fff'
+        });
+
+        let continueText = this.add.text(10, 50, 'Press enter to continue');
+        continueText.setStyle({
+            font: '24px Arial',
+            fill: '#fff'
+        });
+        //[this, bossList[round]])
+        scene.round++;
+        this.object = bossList[this.round]
+    }
+
+    execute(scene) {
+        const { enter } = scene.keys;
+        
+        if(Phaser.Input.Keyboard.JustDown(enter)) {
+            this.stateMachine.transition('new');
+            return;
+        }
     }
 }
