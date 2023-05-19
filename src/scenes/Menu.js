@@ -1,9 +1,14 @@
+//Scene of the Menu or the menuScene.  
+//The Menu has just the title of the game, and also a textfield for the player to click and edit
+//The textfield determines the number of players or sets the global variable
+//If the player does not enter a number, or the number is less than they will get a warning.
 class Menu extends Phaser.Scene {
     
     constructor() {
         super("menuScene");
     }
     preload() {
+        //Loading or installing the REXUI texfield plugin by link from github
         var url;
         url = 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexbbcodetextplugin.min.js';
         this.load.plugin('rexbbcodetextplugin', url, true);
@@ -13,7 +18,8 @@ class Menu extends Phaser.Scene {
     }
 
     create() {
-        
+        //The start of making a the textfield with the plugin
+        //This one is for taking in the number of players.
         game.config.dom = true;
         game.config.parent = this;
         var printText = this.add.rexBBCodeText(game.config.width/2, game.config.height/2 + borderUISize + borderPadding*2, '1', {
@@ -45,6 +51,8 @@ class Menu extends Phaser.Scene {
             onTextChanged: function (textObject, text) {
                 textObject.text = text;
                 console.log(`Text: ${text}`);
+                //Most important part that reads what the player wrote and changes it to int
+                //Global number_of_players turns into that value.
                 number_of_players = parseInt(text);
             },
             onClose: function (textObject) {
@@ -54,6 +62,7 @@ class Menu extends Phaser.Scene {
             // enterClose: false
         });
 
+        //Text on the bottom-left of the Menu screen telling the player what to do.
         this.add.text(20, 665, 'Click text to start editing, press enter key to stop editing and begin game');
         
         let menuConfig = {
@@ -70,13 +79,13 @@ class Menu extends Phaser.Scene {
         }
 
         // show menu text
+        //Adds text or tile of the game.
         this.add.text(game.config.width/2, game.config.height/2 - borderUISize - borderPadding, 'A Journey of Fate', menuConfig).setOrigin(0.5);
         menuConfig.fontSize = '28px';
+
+        //Text right above the textfield in the Menu, below Game title.
         this.add.text(game.config.width/2, game.config.height/2, 'Enter the number of players below.', menuConfig).setOrigin(0.5);
         
-        //menuConfig.backgroundColor = '#00FF00';
-        //menuConfig.color = '#000';
-        //this.add.text(game.config.width/2, game.config.height/2 + borderUISize + borderPadding, 'Press <- for Novice or -> for Expert', menuConfig).setOrigin(0.5);
         // define keys
         keyLEFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
         keyRIGHT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
@@ -84,56 +93,39 @@ class Menu extends Phaser.Scene {
     }
     
     update() {
-        
+        ////The keyLeft input is not actually needed, just some debugging or for future credits and tutorial scene
         if (Phaser.Input.Keyboard.JustDown(keyLEFT)) {
-            // easy mode
+            
             
             console.log("hello");
             console.log(number_of_players);
-            
-            //this.scene.start('playScene');    
+   
         }
+        //On Enter keyDown, this will check number_of_players and decide what to do
         if (Phaser.Input.Keyboard.JustDown(keyENTER)) {
-            // easy mode
-            
+   
+            //just some Debugging for print statements.
             console.log("hello");
             console.log(number_of_players);
+
+            //If the value of the parsed text from the textfield or number_of_players is NaN (not a number)
+            //or if it is less than 1, the warning.text will appear with the message "Enter a number no less than 1!"
             if (isNaN(number_of_players) || number_of_players < 1){
                 console.log("please enter a number no less than 1");
                 this.warning.text = 'Enter a number no less than 1!';
             }
+            //If number_of_players is not NaN and greater or equal to 1, we can go to the traveler
             else if (!isNaN(number_of_players) && number_of_players >= 1) {
-                this.scene.start("playScene");
-            }
-            //this.scene.start('playScene');    
+                this.scene.start("travelerScene");
+            }    
         }
+        //The keyRight input is not actually needed, just some debugging or for future credits and tutorial scene
         if (Phaser.Input.Keyboard.JustDown(keyRIGHT)) {
             // hard mode
             console.log("bye");
-            
-            //this.scene.start('playScene'); 
-            
-            //this.scene.start('playScene');    
+          
         }
     }
     
 }
 
-/*
-var config = {
-    type: Phaser.AUTO,
-    parent: 'phaser-example',
-    width: 800,
-    height: 600,
-    scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-    },
-    dom: {
-        createContainer: true
-    },
-    scene: Menu
-};
-let game = new Phaser.Game(config);
-let borderUISize = game.config.height / 15;
-let borderPadding = borderUISize / 3;*/

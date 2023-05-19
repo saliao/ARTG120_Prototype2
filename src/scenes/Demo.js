@@ -1,4 +1,6 @@
 
+//Ignore Demo.js, this was for testing the RexUI plugin textfield on an empty canvas.
+//I was trying to learn how to add and use the textfield.
 class Demo extends Phaser.Scene {
     constructor() {
         super({
