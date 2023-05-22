@@ -48,13 +48,18 @@ class Boss extends Phaser.GameObjects.Sprite {
         //It will return the message of the boss. 
 
         this.selection = Math.floor(Math.random() * 4); //Number between 0-3
-        console.log("Rolling d4: "+ this.selection);
+        //console.log("Rolling d4: "+ this.selection);
         //console.log("Move now: "+ this.moves[this.selection]);
-        let dice = this.selection+1;
-        return "I rolled a " + dice +".  \n\n" + this.moves[this.selection]; 
+        //let dice = this.selection+1;
+        let type = this.moves[this.selection][0];
+        currentBossmove = this.moves[this.selection][1];
+        return type; 
+        
     }
     turn() {
         //For future implmentation for return the turn number and what type of move the boss is doing.
         return this.moves[this.selection][1];
+        
+        
     }
 }

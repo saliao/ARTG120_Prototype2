@@ -13,17 +13,22 @@ class Brute extends Phaser.Scene {
         this.numbersArray = []; //Not used
         this.currentNumberText = null; //Not used
         this.entryLineText = null; //Not used
+        
 
         this.round = 0; //For future uses but not yet implemented or used
     }
     preload() {
+        
         // load images/tile sprites
         this.load.image('healthbar', './assets/green.png');
         this.load.image('back', './assets/back1.png');
+        this.load.image('brute', './assets/brute.png');
         // load spritesheet
         //this.load.spritesheet('', './assets/.png', {frameWidth: 0, frameHeight: 0, startFrame: 0, endFrame: 0});
     }
     create() {
+        this.actionPhase = false;
+        this.announcePhase = true;
         //This sets playerdmg to zero initially because the room just got created, and no damage exist yet.
         playerdmg = 0;
 
@@ -52,7 +57,10 @@ class Brute extends Phaser.Scene {
         this.bossMaxHealth = number_of_players*30;
 
         //Adding our boss title text for Brute
-        this.bosstitle = this.add.text(game.config.width/2, game.config.height/2 -  4*borderUISize, 'The Brute',menuConfig).setOrigin(0.5);
+        this.bosstitle = this.add.text(game.config.width/2, game.config.height/2 -  5.5*borderUISize, 'The Brute',menuConfig).setOrigin(0.5);
+        menuConfig.fontSize = '24px';
+        this.phase = this.add.text(game.config.width/2, game.config.height/2 -  4*borderUISize, 'Planning Phase',menuConfig).setOrigin(0.5);
+
 
         //Comments below were code for tweening that does not work.
         //this.bossHealth = 120;
@@ -79,28 +87,37 @@ class Brute extends Phaser.Scene {
         // make Brute boss
         //Making const BruteMoves a List of typed out moves of the Brute based on the rule's sheet or card.
         const BruteMoves = ["Attack: I hit a random player for 5 damage", "Savage Blow: I take no action this round: next round I hit a random player for 12 damage",  "Enrage: I deal 1 more damage when I attack.", "Brace: I gain 10 temporary HP that persists between rounds if not removed."];
-        
+        this.BruteMoves2 = [["Attack", "I hit a random player for 5 damage"],["Savage Blow", "I take no action this round: \nnext round I hit a random player for 12 damage"], ["Enrage", "I deal 1 more damage when I attack."], ["Brace", "I gain 10 temporary HP that \npersists between rounds if not removed."]];
         //create the Brute boss sprite and also pass its moves over for announce() later.
-        this.Brute = new Boss(this, game.config.width/2, game.config.height/2, 'back', BruteMoves, 40,).setOrigin(0.5, 0);
+        this.Brute = new Boss(this, game.config.width/2, game.config.height/3, 'brute', this.BruteMoves2, 40,).setOrigin(0.5, 0).setScale(0.35);
         
         //Makes the bossHeathBar
         this.BosshealthBar=this.makeBar(0,0,0x2ecc71,this.bossHealth);
         this.bosslog = this.add.text(game.config.width/2, game.config.height/2 - 2* borderUISize, '').setOrigin(0.5);
         
         //this is the text that shows what the bosses's move is.
-        console.log(this.Brute.announce());
-        this.bosslog.text = this.Brute.announce();
-
-        //Instruction text below the textfield tell them to edit and enter for damage.
-        this.add.text(game.config.width/2, game.config.height/2 - borderPadding*2+200, 'Click grey textbox to start editing, press enter key to damage the boss').setOrigin(0.5);
+        this.bosslog = this.add.text(game.config.width/2, game.config.height/2 - 3* borderUISize, '').setOrigin(0.5);
+        //console.log(this.Traveler.announce());
+        //this.bosslog.text = this.Traveler.announce();
+        //this.MoveElement = this.TravelerMoves2[this.Traveler.announce()];
+        this.bosslog.text = "My next move will be: " +this.Brute.announce();
         
+        this.nexturnDialogue = this.add.text(game.config.width/2, game.config.height/2 - 1.9* borderUISize, '').setOrigin(0.5);
+        //console.log(this.Traveler.announce());
+ 
+        //console.log(this.MoveElement);
+        this.nexturnDialogue.text = '';
+
+        this.add.text(20, 110, 'Click grey textbox to start editing\ndamage calculation.');
+
         //Instruction text below the health bar that says to press left arrow and end turn for the boss's next announcement
-        this.add.text(20, 80, 'Press left arrow to end players turn');
+        this.add.text(20, 70, 'Press right arrow to prompt the boss \nto the next phase/turn');
+        this.add.text(20, 150, 'press enter key to damage the boss \nor left arrow to heal it. \n*note only works during action phase.');
         
         //Adding REXUI textfield now
         game.config.dom = true;
         game.config.parent = this;
-        var printText = this.add.rexBBCodeText(game.config.width/2, game.config.height/2 - borderPadding*2, '0', {
+        var printText = this.add.rexBBCodeText(game.config.width/9, game.config.height/2 - borderPadding*2, '0', {
             color: 'white',
             fontSize: '24px',
             //fontFamily: 'fantasy',
@@ -207,12 +224,50 @@ class Brute extends Phaser.Scene {
         */
         this.setValue(this.BosshealthBar,((this.bossHealth)/this.bossMaxHealth));
     }
+    heal(n){
+        if(this.bossHealth < 0) {
+            this.bossHealth = 0;
+        }
+        else {
+            this.bossHealth = this.bossHealth+n;
+        }
+
+        this.setValue(this.BosshealthBar,((this.bossHealth)/this.bossMaxHealth));
+    }
     
     update() {
+        //We are constantly checking and changing the phase text to the current phase based on whether actionPhase or announcePhase is true.
+        if(this.actionPhase == true) {
+            this.phase.text = "Action Phase";
+        }
+        if(this.announcePhase == true) {
+            this.phase.text = "Planning Phase";
+            
+        }
         //If the game is over and the input is keyRight, we move to the dragon
         if(this.gameOver && Phaser.Input.Keyboard.JustDown(keyRIGHT)) {
             this.scene.start("dragonScene");
             
+        }
+        //If the game is over and the input is keyRight, we move to the dragon, else we change phases
+        if(!this.gameOver && Phaser.Input.Keyboard.JustDown(keyRIGHT)) {
+            
+            if (this.bossHealth > 0 && this.announcePhase == true && this.actionPhase == false){
+                console.log("It is changing from announcement"+ this.bossHealth);
+                
+
+                this.bosslog.text = currentBossmove;
+                this.actionPhase = true;
+                this.announcePhase = false;
+                
+                }   
+            else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == true) {
+                let nextmove = this.Brute.announce();
+                
+                this.bosslog.text = "My next move will be: " +nextmove;
+                this.actionPhase = false;
+                this.announcePhase = true;
+            }
         }
         //Press Enter to damage the boss
         if (Phaser.Input.Keyboard.JustDown(keyENTER)) {
@@ -220,7 +275,7 @@ class Brute extends Phaser.Scene {
             
             console.log("damage");
             console.log(playerdmg);
-            if (this.bossHealth >= 0 && !isNaN(playerdmg)){
+            if (this.bossHealth >= 0 && !isNaN(playerdmg)&&this.announcePhase == false){
                 this.damage(playerdmg);
                 //this.bosslog.text = this.Brute.announce();
                 }
@@ -228,16 +283,11 @@ class Brute extends Phaser.Scene {
         }
         //Ends players' turn or shows the next boss's announcement/move
         if (Phaser.Input.Keyboard.JustDown(keyLEFT)) {
-            // Ends players' turn
-            
-            //this.damage(4);
-            //this.bossHealth -= 10;
-            
-            if (this.bossHealth > 0){
-            console.log("Boss rolls, health now: "+ this.bossHealth);
-            this.bosslog.text = this.Brute.announce();
-            }
-            //this.scene.start('playScene');    
+            if (this.bossHealth >= 0 && !isNaN(playerdmg) &&this.announcePhase == false){
+                this.heal(playerdmg);
+                //this.bosslog.text = this.Traveler.announce();
+                
+                }   
         }
         //If the bossHealth is 0 or negative, add text, 'You Won' and 'Press right arrow' and set gameOver to true.
         if(this.bossHealth <= 0) {

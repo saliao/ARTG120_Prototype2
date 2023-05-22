@@ -13,6 +13,8 @@ class Dragon extends Phaser.Scene {
         this.numbersArray = []; //Not used
         this.currentNumberText = null; //Not used
         this.entryLineText = null; //Not used
+        
+
 
         this.round = 0;//For future uses but not yet implemented or used
     }
@@ -20,10 +22,15 @@ class Dragon extends Phaser.Scene {
         // load images/tile sprites
         this.load.image('healthbar', './assets/green.png');
         this.load.image('back', './assets/back1.png');
+        this.load.image('dragon', './assets/dragon.png');
         // load spritesheet
         //this.load.spritesheet('', './assets/.png', {frameWidth: 0, frameHeight: 0, startFrame: 0, endFrame: 0});
     }
     create() {
+
+        this.actionPhase = false;
+        this.announcePhase = true;
+        
         //This sets playerdmg to zero initially because the room just got created, and no damage exist yet.
         playerdmg = 0;
 
@@ -52,7 +59,9 @@ class Dragon extends Phaser.Scene {
         this.bossMaxHealth = number_of_players*40;
 
         //Adding our boss title text for Dragon
-        this.bosstitle = this.add.text(game.config.width/2, game.config.height/2 -  4*borderUISize, 'The Dragon',menuConfig).setOrigin(0.5);
+        this.bosstitle = this.add.text(game.config.width/2, game.config.height/2 -  5.5*borderUISize, 'The Dragon',menuConfig).setOrigin(0.5);
+        menuConfig.fontSize = '24px';
+        this.phase = this.add.text(game.config.width/2, game.config.height/2 -  4*borderUISize, 'Planning Phase',menuConfig).setOrigin(0.5);
         
         //Comments below were code for tweening that does not work.
         //this.bossHealth = 120;
@@ -79,28 +88,34 @@ class Dragon extends Phaser.Scene {
         // make Dragon boss
         //Making const DragonMoves a List of typed out moves of the Traveler based on the rule's sheet or card.
         const DragonMoves = ["Attack: I hit a random player for 8 damage","Fire Breath: I bellow fire to hit all players for 6 damage", "Cave-In: I smash the ground dealing 2 damage to all players and causing " +Math.floor((Math.random()*5)+1)+" rubble to fall on random players for 2 damage each next round", "Scale Armor: Whenever I take damage, reduce it by 2, this stacks."];
-        
+        this.DragonMoves2 = [["Attack", "I hit a random player for 8 damage"],["Fire Breath", "I bellow fire to hit all players for 6 damage"],["Cave-In","I smash the ground dealing 2 damage to all players\ncausing " + Math.floor((Math.random()*5)+1)+ " rubble to fall on \nrandom players for 2 damage each round"], ["Scale Armor", "Whenever I take damage, \nreduce it by 2, this stacks."]];
         //create the Dragon boss sprite and also pass its moves over for announce() later.
-        this.Dragon = new Boss(this, game.config.width/2, game.config.height/2, 'back', DragonMoves, 40,).setOrigin(0.5, 0);
+        this.Dragon = new Boss(this, game.config.width/2, game.config.height/3, 'dragon', this.DragonMoves2, 40,).setOrigin(0.5, 0).setScale(0.35);
         
         //Makes the bossHeathBar
         this.BosshealthBar=this.makeBar(0,0,0x2ecc71,this.bossHealth);
        
         //this is the text that shows what the bosses's move is.
-        this.bosslog = this.add.text(game.config.width/2, game.config.height/2 - 2* borderUISize, '').setOrigin(0.5);
-        console.log(this.Dragon.announce());
-        this.bosslog.text = this.Dragon.announce();
+        this.bosslog = this.add.text(game.config.width/2, game.config.height/2 - 3* borderUISize, '').setOrigin(0.5);
+        this.bosslog.text = "My next move will be: " +this.Dragon.announce();
+
+        this.nexturnDialogue = this.add.text(game.config.width/2, game.config.height/2 - 1.9* borderUISize, '').setOrigin(0.5);
+        
+ 
+        //console.log(this.MoveElement);
+        this.nexturnDialogue.text = '';
         
         //Instruction text below the textfield tell them to edit and enter for damage.
-        this.add.text(game.config.width/2, game.config.height/2 - borderPadding*2+200, 'Click grey textbox to start editing, press enter key to damage the boss').setOrigin(0.5);
-        
+        this.add.text(20, 110, 'Click grey textbox to start editing\ndamage calculation.');
+
         //Instruction text below the health bar that says to press left arrow and end turn for the boss's next announcement
-        this.add.text(20, 80, 'Press left arrow to end players turn');
+        this.add.text(20, 70, 'Press right arrow to prompt the boss \nto the next phase/turn');
+        this.add.text(20, 150, 'press enter key to damage the boss \nor left arrow to heal it. \n*note only works during action phase.');
         
         //Adding REXUI textfield now
         game.config.dom = true;
         game.config.parent = this;
-        var printText = this.add.rexBBCodeText(game.config.width/2, game.config.height/2 - borderPadding*2, '0', {
+        var printText = this.add.rexBBCodeText(game.config.width/9, game.config.height/2 - borderPadding*2, '0', {
             color: 'white',
             fontSize: '24px',
             //fontFamily: 'fantasy',
@@ -207,12 +222,52 @@ class Dragon extends Phaser.Scene {
        
         this.setValue(this.BosshealthBar,((this.bossHealth)/this.bossMaxHealth));
     }
+    heal(n){
+        if(this.bossHealth < 0) {
+            this.bossHealth = 0;
+        }
+        else {
+            this.bossHealth = this.bossHealth+n;
+        }
+
+        this.setValue(this.BosshealthBar,((this.bossHealth)/this.bossMaxHealth));
+    }
     update() {
+        //We are constantly checking and changing the phase text to the current phase based on whether actionPhase or announcePhase is true.
+        if(this.actionPhase == true) {
+            this.phase.text = "Action Phase";
+        }
+        if(this.announcePhase == true) {
+            this.phase.text = "Planning Phase";
+            
+        }
         //If the game is over and the input is keyRight, we move to the Menu
         if(this.gameOver && Phaser.Input.Keyboard.JustDown(keyRIGHT)) {
             //this.scene.start("menuScene");
             //this.scene.restart();
             this.scene.start('menuScene');
+        }
+        //If the game is over and the input is keyRight, we move to the menu, else we change phases
+        if(!this.gameOver && Phaser.Input.Keyboard.JustDown(keyRIGHT)) {
+            
+            if (this.bossHealth > 0 && this.announcePhase == true && this.actionPhase == false){
+                console.log("It is changing from announcement"+ this.bossHealth);
+                
+                //let selection = this.Traveler.announce()
+                //let randommove = this.Traveler.announce();
+                //this.bosslog.text = "Announcement Phase \nMy next move will be: " +  randommove;
+                this.bosslog.text = currentBossmove;
+                this.actionPhase = true;
+                this.announcePhase = false;
+                
+                }   
+            else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == true) {
+                let nextmove = this.Dragon.announce();
+                
+                this.bosslog.text = "My next move will be: " +nextmove;
+                this.actionPhase = false;
+                this.announcePhase = true;
+            }
         }
         //Press Enter to damage the boss
         if (Phaser.Input.Keyboard.JustDown(keyENTER)) {
@@ -220,7 +275,7 @@ class Dragon extends Phaser.Scene {
             
             console.log("damage");
             console.log(playerdmg);
-            if (this.bossHealth >= 0 && !isNaN(playerdmg)){
+            if (this.bossHealth >= 0 && !isNaN(playerdmg)&&this.announcePhase == false){
                 this.damage(playerdmg);
                 //this.bosslog.text = this.Dragon.announce();
                 }
@@ -228,16 +283,11 @@ class Dragon extends Phaser.Scene {
         }
         //Ends players' turn or shows the next boss's announcement/move
         if (Phaser.Input.Keyboard.JustDown(keyLEFT)) {
-            // Ends players' turn
-            
-            //this.damage(4);
-            //this.bossHealth -= 10;
-            
-            if (this.bossHealth > 0){
-            console.log("Boss rolls, health now: "+ this.bossHealth);
-            this.bosslog.text = this.Dragon.announce();
-            }
-            //this.scene.start('playScene');    
+            if (this.bossHealth >= 0 && !isNaN(playerdmg) &&this.announcePhase == false){
+                this.heal(playerdmg);
+                //this.bosslog.text = this.Traveler.announce();
+                
+                }   
         }
         //If the bossHealth is 0 or negative, add text, 'You Won' and 'Press right arrow' and set gameOver to true.
         if(this.bossHealth <= 0) {

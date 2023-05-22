@@ -54,6 +54,8 @@ let dragon_health = 0;
 let traveler_health = 0;
 let brute_health = 0;
 
+var currentBossmove = '';
+
 //Global player damage to always allow the player to read and also set the damage number towards the boss
 var playerdmg = 0;
 

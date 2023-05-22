@@ -18,6 +18,7 @@ class Menu extends Phaser.Scene {
     }
 
     create() {
+        currentBossmove = '';
         //The start of making a the textfield with the plugin
         //This one is for taking in the number of players.
         game.config.dom = true;
