@@ -14,7 +14,7 @@ class Beloved extends Phaser.Scene {
         this.currentNumberText = null;//Not used
         this.entryLineText = null;//Not used
 
-        this.round = 0;//For future uses but not yet implemented or used
+        
     }
     preload() {
         // load images/tile sprites
@@ -25,13 +25,15 @@ class Beloved extends Phaser.Scene {
         //this.load.spritesheet('', './assets/.png', {frameWidth: 0, frameHeight: 0, startFrame: 0, endFrame: 0});
     }
     create() {
+        this.round = 1;//For future uses but not yet implemented or used
         //This sets playerdmg to zero initially because the room just got created, and no damage exist yet.
         playerdmg = 0;
-
+        this.damagetook = 0;
         //this is for checking if the game is over, so when initilized it is false.
         this.gameOver = false;
         this.actionPhase = false;
         this.announcePhase = true;
+        this.bossPhase = false;
 
         //configuration for the boss title text
         let menuConfig = {
@@ -56,7 +58,8 @@ class Beloved extends Phaser.Scene {
         //Adding our boss title text for Beloved
         this.bosstitle = this.add.text(game.config.width/2, game.config.height/2 -  5.5*borderUISize, 'The Beloved',menuConfig).setOrigin(0.5);
         menuConfig.fontSize = '24px';
-        this.phase = this.add.text(game.config.width/2, game.config.height/2 -  4*borderUISize, 'Planning Phase',menuConfig).setOrigin(0.5);
+        this.phase = this.add.text(game.config.width/2, game.config.height/2 -  4*borderUISize, 'Announcement',menuConfig).setOrigin(0.5);
+        this.roundtext = this.add.text(20, game.config.height -  1.5*borderUISize, 'Round: '+this.round,menuConfig);
         //Comments below were code for tweening that does not work.
         //this.bossHealth = 120;
         //this.bossMaxHealth = 120;
@@ -92,10 +95,11 @@ class Beloved extends Phaser.Scene {
         //this is the text that shows what the bosses's move is.
         this.bosslog = this.add.text(game.config.width/2, game.config.height/2 - 3* borderUISize, '').setOrigin(0.5);
         
-        this.bosslog.text = "My next move will be: " +this.Beloved.announce();
+        //The description about the phase or what the announcement or next move is.
+        this.bosslog.text = "The boss's next move is: " +this.Beloved.announce();
       
         this.nexturnDialogue = this.add.text(game.config.width/2, game.config.height/2 - 1.9* borderUISize, '').setOrigin(0.5);
-        //console.log(this.Traveler.announce());
+        //console.log(this.Beloved.announce());
    
         console.log(this.MoveElement);
         this.nexturnDialogue.text = '';
@@ -106,8 +110,7 @@ class Beloved extends Phaser.Scene {
 
         //Instruction text below the health bar that says to press left arrow and end turn for the boss's next announcement
         this.add.text(20, 70, 'Press right arrow to prompt the boss \nto the next phase/turn');
-        this.add.text(20, 150, 'press enter key to damage the boss \nor left arrow to heal it. \n*note only works during action phase.');
-
+        this.add.text(20, 150, 'press enter key to damage the boss \nor left arrow to heal it. \n*note is for players turn only.');
         //Adding REXUI textfield now
         game.config.dom = true;
         game.config.parent = this;
@@ -196,6 +199,7 @@ class Beloved extends Phaser.Scene {
             this.bossHealth = 0;
         }
         else {
+            this.damagetook += n;
             this.bossHealth = this.bossHealth-n;    
         }
         /*
@@ -228,13 +232,27 @@ class Beloved extends Phaser.Scene {
 
         this.setValue(this.BosshealthBar,((this.bossHealth)/this.bossMaxHealth));
     }
+    sample_range(range,n){
+        var sample = [];
+        for(var i=0; i <n; i++) {
+            sample.push(range.splice(Math.random()*range.length,1))
+        }
+
+    }
     update() {
+        this.roundtext.text = 'Round: ' + this.round;
         //We are constantly checking and changing the phase text to the current phase based on whether actionPhase or announcePhase is true.
         if(this.actionPhase == true) {
-            this.phase.text = "Action Phase";
+            this.phase.text = "Players' Turn";
         }
         if(this.announcePhase == true) {
-            this.phase.text = "Planning Phase";
+            this.phase.text = "Announcement";
+            this.phase.color = '#880808';
+            
+        }
+        if(this.bossPhase == true) {
+            this.phase.text = "Boss's Turn";
+            this.phase.color = '#880808';
             
         }
         //If the game is over and the input is keyRight, we move to the brute
@@ -244,21 +262,63 @@ class Beloved extends Phaser.Scene {
         //If the game is over and the input is keyRight, we move to the brute, else we change phases
         if(!this.gameOver && Phaser.Input.Keyboard.JustDown(keyRIGHT)) {
             
-            if (this.bossHealth > 0 && this.announcePhase == true && this.actionPhase == false){
-                console.log("It is changing from announcement"+ this.bossHealth);
-                
-                this.bosslog.text = currentBossmove;
+                if (this.bossHealth > 0 && this.announcePhase == true && this.actionPhase == false &&this.bossPhase==false){
+                this.bosslog.text = 'players now input their damage on the grey box'
                 this.actionPhase = true;
                 this.announcePhase = false;
+                this.bossPhase = false;
                 
                 }   
-            else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == true) {
-                let nextmove = this.Beloved.announce();
-                
-                this.bosslog.text = "My next move will be: " +nextmove;
-                this.actionPhase = false;
-                this.announcePhase = true;
-            }
+                else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == true &&this.bossPhase == false){
+                    this.bosslog.text = currentBossmove;
+                    this.actionPhase = false;
+                    this.announcePhase = false;
+                    this.bossPhase = true;
+                    let random = Math.floor((Math.random()*number_of_players)+1);
+                    let random2 = Math.floor((Math.random()*number_of_players)+1);
+                    let random3 = Math.floor((Math.random()*number_of_players)+1);
+                    var sample = [];
+                    for(var i =0; i < number_of_players; i++){
+                        sample.push(i+1);
+                    }
+                    
+                    if (this.bosslog.text == 'I heal for half of the damage I took this round.') {
+                        //this.bosslog.text = 'I hit player ' + random + ' for 3 damage';
+                        this.heal(this.damagetook/2);
+        
+                        this.damagetook = 0;
+                    }
+                    else if (this.bosslog.text == "I reduce a random player’s damage \ndealt by 2 until I die.") {
+                        this.bosslog.text = "I reduce player " + random + "'s damage \ndealt by 2 until I die.";
+                    }
+                    else if (this.bosslog.text == "I hit a random player for 2 damage \nand make them attack another.") {
+                        this.bosslog.text = "I hit player "+ random2 + " for 2 damage \nand make them attack player " +random3 +"."
+                    }
+                    else if (this.bosslog.text == "I hit two random players for 3 damage each: \nif I lose half of my HP, \nI only attack once." && number_of_players > 1) {
+                        var playertargets = this.sample_range(sample,2);
+                        console.log(sample);
+                        this.bosslog.text = "I hit player " + sample[0] + " and player " + sample[1] + " for 3 damage each: \nif I lose half of my HP, \nI only attack once.";
+
+                    }
+                    else if (this.bosslog.text == "I hit two random players for 3 damage each: \nif I lose half of my HP, \nI only attack once." && number_of_players == 1) {
+                        
+                        this.bosslog.text = "I hit player " + random3  + " for 3 damage. \nif I lose half of my HP, \nI miss the attack.";
+
+                    }
+                    this.damagetook = 0;
+                    
+                }
+                else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == false &&this.bossPhase == true) {
+                    let nextmove = this.Beloved.announce();
+                    
+                    this.bosslog.text = "The boss's next move is: " +nextmove;
+                    this.bossPhase = false;
+                    this.actionPhase = false;
+                    this.announcePhase = true;
+                    this.round++;
+                    console.log(this.round);
+                    
+                }
         }
         //Press Enter to damage the boss
         if (Phaser.Input.Keyboard.JustDown(keyENTER)) {
@@ -266,7 +326,7 @@ class Beloved extends Phaser.Scene {
             
             console.log("damage");
             console.log(playerdmg);
-            if (this.bossHealth >= 0 && !isNaN(playerdmg) && this.announcePhase == false){
+            if (this.bossHealth >= 0 && !isNaN(playerdmg) && this.actionPhase == true){
                 this.damage(playerdmg);
                 //this.bosslog.text = this.Beloved.announce();
                 }
@@ -274,11 +334,11 @@ class Beloved extends Phaser.Scene {
         }
         //Ends players' turn or shows the next boss's announcement/move
         if (Phaser.Input.Keyboard.JustDown(keyLEFT)) {
-            if (this.bossHealth >= 0 && !isNaN(playerdmg) &&this.announcePhase == false){
-                this.heal(playerdmg);
-                //this.bosslog.text = this.Traveler.announce();
+            // if (this.bossHealth >= 0 && !isNaN(playerdmg) &&this.actionPhase == true){
+            //     this.heal(playerdmg);
+            //     //this.bosslog.text = this.Traveler.announce();
                 
-                }  
+            //     }  
         }
         //If the bossHealth is 0 or negative, add text, 'You Won' and 'Press right arrow' and set gameOver to true.
         if(this.bossHealth <= 0) {

@@ -15,7 +15,7 @@ class Traveler extends Phaser.Scene {
         this.entryLineText = null;//Not used
         
 
-        this.round = 0;//For future uses but not yet implemented or used
+        
     }
     preload() {
         // load images/tile sprites
@@ -26,7 +26,9 @@ class Traveler extends Phaser.Scene {
         //this.load.spritesheet('', './assets/.png', {frameWidth: 0, frameHeight: 0, startFrame: 0, endFrame: 0});
     }
     create() {
+        this.round = 1;//keeps track of rounds
         this.actionPhase = false;
+        this.bossPhase = false;
         this.announcePhase = true;
         //This sets playerdmg to zero initially because the room just got created, and no damage exist yet.
         playerdmg = 0;
@@ -59,8 +61,8 @@ class Traveler extends Phaser.Scene {
         //Adding our boss title text for Traveler
         this.bosstitle = this.add.text(game.config.width/2, game.config.height/2 -  5.5*borderUISize, 'The Traveler',menuConfig).setOrigin(0.5);
         menuConfig.fontSize = '24px';
-        this.phase = this.add.text(game.config.width/2, game.config.height/2 -  4*borderUISize, 'Planning Phase',menuConfig).setOrigin(0.5);
-
+        this.phase = this.add.text(game.config.width/2, game.config.height/2 -  4*borderUISize, 'Announcement',menuConfig).setOrigin(0.5);
+        this.roundtext = this.add.text(20, game.config.height -  1.5*borderUISize, 'Round: '+this.round,menuConfig);
         //Comments below were code for tweening that does not work.
         //this.bossHealth = 120;
         //this.bossMaxHealth = 120;
@@ -98,7 +100,7 @@ class Traveler extends Phaser.Scene {
         //console.log(this.Traveler.announce());
         //this.bosslog.text = this.Traveler.announce();
         //this.MoveElement = this.TravelerMoves2[this.Traveler.announce()];
-        this.bosslog.text = "My next move will be: " +this.Traveler.announce();
+        this.bosslog.text = "The boss's next move is: " +this.Traveler.announce();
         
         this.nexturnDialogue = this.add.text(game.config.width/2, game.config.height/2 - 1.9* borderUISize, '').setOrigin(0.5);
         //console.log(this.Traveler.announce());
@@ -109,8 +111,8 @@ class Traveler extends Phaser.Scene {
         this.add.text(20, 110, 'Click grey textbox to start editing\ndamage calculation.');
 
         //Instruction text below the health bar that says to press left arrow and end turn for the boss's next announcement
-        this.add.text(20, 70, 'Press right arrow to prompt the boss \nto the next phase/turn');
-        this.add.text(20, 150, 'press enter key to damage the boss \nor left arrow to heal it. \n*note only works during action phase.');
+        this.add.text(20, 70, 'Press right arrow to switch or move\nto the next turn');
+        this.add.text(20, 150, 'press enter key to damage the boss. \n*note that this is for players turn only.');
         //Adding REXUI textfield now
         game.config.dom = true;
         game.config.parent = this;
@@ -231,12 +233,19 @@ class Traveler extends Phaser.Scene {
         this.setValue(this.BosshealthBar,((this.bossHealth)/this.bossMaxHealth));
     }
     update() {
+        this.roundtext.text = 'Round: ' + this.round;
         //We are constantly checking and changing the phase text to the current phase based on whether actionPhase or announcePhase is true.
         if(this.actionPhase == true && this.announcePhase == false) {
-            this.phase.text = "Action Phase";
+            this.phase.text = "Players' Turn";
         }
         if(this.announcePhase == true) {
-            this.phase.text = "Planning Phase";
+            this.phase.text = "Announcement";
+            this.phase.color = '#880808';
+            
+        }
+        if(this.bossPhase == true) {
+            this.phase.text = "Boss's Turn";
+            this.phase.color = '#880808';
             
         }
         if(this.gameOver && Phaser.Input.Keyboard.JustDown(keyRIGHT)) {
@@ -244,25 +253,43 @@ class Traveler extends Phaser.Scene {
             this.scene.start("belovedScene");
         }
         //If the game is over and the input is keyRight, we move to the beloved, else we change phases
-        if(!this.gameOver && Phaser.Input.Keyboard.JustDown(keyRIGHT)) {
-            
-            if (this.bossHealth > 0 && this.announcePhase == true && this.actionPhase == false){
+       if(!this.gameOver && Phaser.Input.Keyboard.JustDown(keyRIGHT)) {
+             
+            if (this.bossHealth > 0 && this.announcePhase == true && this.actionPhase == false &&this.bossPhase==false){
                 console.log("It is changing from announcement"+ this.bossHealth);
                 
                 //let selection = this.Traveler.announce()
                 //let randommove = this.Traveler.announce();
                 //this.bosslog.text = "Announcement Phase \nMy next move will be: " +  randommove;
-                this.bosslog.text = currentBossmove;
+                //this.bosslog.text = currentBossmove;
+                this.bosslog.text = 'players now input their damage on the grey box'
                 this.actionPhase = true;
                 this.announcePhase = false;
+                this.bossPhase = false;
                 
                 }   
-            else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == true) {
+            else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == true &&this.bossPhase == false){
+                this.bosslog.text = currentBossmove;
+                this.actionPhase = false;
+                this.announcePhase = false;
+                this.bossPhase = true;
+                let random = Math.floor((Math.random()*number_of_players)+1);
+                if (this.bosslog.text == 'I hit a random player for 3 damage') {
+                    this.bosslog.text = 'I hit player ' + random + ' for 3 damage';
+        
+                }
+                
+            }
+            else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == false &&this.bossPhase == true) {
                 let nextmove = this.Traveler.announce();
                 
-                this.bosslog.text = "My next move will be: " +nextmove;
+                this.bosslog.text = "The boss's next move is: " +nextmove;
+                this.bossPhase = false;
                 this.actionPhase = false;
                 this.announcePhase = true;
+                this.round++;
+                console.log(this.round);
+                
             }
         }
         //Press Enter to damage the boss
@@ -271,13 +298,14 @@ class Traveler extends Phaser.Scene {
             
             console.log("damage");
             console.log(playerdmg);
-            if (this.bossHealth >= 0 && !isNaN(playerdmg) &&this.announcePhase == false){
+            if (this.bossHealth >= 0 && !isNaN(playerdmg) &&this.actionPhase == true){
                 this.damage(playerdmg);
                 //this.bosslog.text = this.Traveler.announce();
                 
                 }
    
         }
+        
         //if (Phaser.Input.Keyboard.JustDown(keyDown)) {
             
             
@@ -298,11 +326,11 @@ class Traveler extends Phaser.Scene {
             
             
             // }   
-            if (this.bossHealth >= 0 && !isNaN(playerdmg) &&this.announcePhase == false){
-                this.heal(playerdmg);
-                //this.bosslog.text = this.Traveler.announce();
+            // if (this.bossHealth >= 0 && !isNaN(playerdmg) &&this.announcePhase == false){
+            //     this.heal(playerdmg);
+            //     //this.bosslog.text = this.Traveler.announce();
                 
-                }
+            //     }
         }
         //If the bossHealth is 0 or negative, add text, 'You Won' and 'Press right arrow' and set gameOver to true.
         if(this.bossHealth <= 0) {
