@@ -85,7 +85,10 @@ class Beloved extends Phaser.Scene {
         // make Beloved boss
         //Making const BelovedMoves a List of typed out moves of the Beloved based on the rule's sheet or card.
         const BelovedMoves = ["Attack: I hit two random players for 3 damage each: if I lose half of my HP, I only attack once.","Regroup: I heal for half of the damage I took this round.","Empathy: I reduce a random player’s damage dealt by 2 until I die.", "Charm: I hit a random player for 2 damage and make them attack another."];
-        this.BelovedMoves2 = [["Attack", "I hit two random players for 3 damage each: \nif I lose half of my HP, \nI only attack once."],["Regroup", "I heal for half of the damage I took this round."], ["Empathy", "I reduce a random player’s damage \ndealt by 2 until I die."], ["Charm", "I hit a random player for 2 damage \nand make them attack another."]];
+        this.BelovedMoves2 = [["Attack", ["Attack", "I hit two random players for 3 damage each: \nif I lose half of my HP, \nI only attack once."]],
+                            ["Buff myself", ["Regroup", "I heal for half of the damage I took this round."]],
+                            ["Debuff a player", ["Empathy", "I reduce a random player's damage \ndealt by 2 until I die."]],
+                            ["perform a Special Attack", ["Charm", "I hit a random player for 2 damage \nand make them Attack another."]]];
         //create the Beloved boss sprite and also pass its moves over for announce() later.
         this.Beloved = new Boss(this, game.config.width/2, game.config.height/3, 'beloved', this.BelovedMoves2, 40,).setOrigin(0.5, 0).setScale(0.35);
         
@@ -96,7 +99,7 @@ class Beloved extends Phaser.Scene {
         this.bosslog = this.add.text(game.config.width/2, game.config.height/2 - 3* borderUISize, '').setOrigin(0.5);
         
         //The description about the phase or what the announcement or next move is.
-        this.bosslog.text = "The boss's next move is: " +this.Beloved.announce();
+        this.bosslog.text = "I am going to " +this.Beloved.announce();
       
         this.nexturnDialogue = this.add.text(game.config.width/2, game.config.height/2 - 1.9* borderUISize, '').setOrigin(0.5);
         //console.log(this.Beloved.announce());
@@ -109,7 +112,7 @@ class Beloved extends Phaser.Scene {
 
 
         //Instruction text below the health bar that says to press left arrow and end turn for the boss's next announcement
-        this.add.text(20, 70, 'Press right arrow to prompt the boss \nto the next phase/turn');
+        this.add.text(20, 70, 'Press right arrow to move\nto the next turn');
         this.add.text(20, 150, 'press enter key to damage the boss \nor left arrow to heal it. \n*note is for players turn only.');
         //Adding REXUI textfield now
         game.config.dom = true;
@@ -149,6 +152,7 @@ class Beloved extends Phaser.Scene {
             },
             onClose: function (textObject) {
                 console.log('Close text editor');
+                textObject.text = 0;
             },
             selectAll: true,
             // enterClose: false
@@ -169,7 +173,7 @@ class Beloved extends Phaser.Scene {
     }
 
     //I found a example of a healthBar function.  It makes a retangular bar and takes x, y, color and health as arguments
-    makeBar(x, y,color,health) {
+    makeBar(x, y,color) {
         //draw the bar
         let bar = this.add.graphics();
 
@@ -177,7 +181,7 @@ class Beloved extends Phaser.Scene {
         bar.fillStyle(color, 1);
 
         //fill the bar with a rectangle
-        bar.fillRect(0, 0, health*10, 50);
+        bar.fillRect(0, 0, game.config.width, 50);//the height of the rectangle is 50 pixels, width is health*height
         
         //position the bar
         bar.x = x;
@@ -251,7 +255,7 @@ class Beloved extends Phaser.Scene {
             
         }
         if(this.bossPhase == true) {
-            this.phase.text = "Boss's Turn";
+            this.phase.text = currentBossmove[0];
             this.phase.color = '#880808';
             
         }
@@ -270,40 +274,46 @@ class Beloved extends Phaser.Scene {
                 
                 }   
                 else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == true &&this.bossPhase == false){
-                    this.bosslog.text = currentBossmove;
+                    this.bosslog.text = currentBossmove[1];
                     this.actionPhase = false;
                     this.announcePhase = false;
                     this.bossPhase = true;
                     let random = Math.floor((Math.random()*number_of_players)+1);
-                    let random2 = Math.floor((Math.random()*number_of_players)+1);
-                    let random3 = Math.floor((Math.random()*number_of_players)+1);
+                    let random2;
+                    do
+                    {
+                        random2 = Math.floor((Math.random()*number_of_players)+1);
+                    }while(random2 == random)
                     var sample = [];
                     for(var i =0; i < number_of_players; i++){
                         sample.push(i+1);
                     }
                     
-                    if (this.bosslog.text == 'I heal for half of the damage I took this round.') {
+                    if (currentBossmove[0] == 'Regroup') {
                         //this.bosslog.text = 'I hit player ' + random + ' for 3 damage';
                         this.heal(this.damagetook/2);
         
                         this.damagetook = 0;
                     }
-                    else if (this.bosslog.text == "I reduce a random player’s damage \ndealt by 2 until I die.") {
+                    else if (currentBossmove[0] == "Empathy") {
                         this.bosslog.text = "I reduce player " + random + "'s damage \ndealt by 2 until I die.";
                     }
-                    else if (this.bosslog.text == "I hit a random player for 2 damage \nand make them attack another.") {
-                        this.bosslog.text = "I hit player "+ random2 + " for 2 damage \nand make them attack player " +random3 +"."
+                    else if (currentBossmove[0] == "Charm") {
+                        this.bosslog.text = "I hit player "+ random2 + " for 2 damage \nand make them attack player " + random +"."
                     }
-                    else if (this.bosslog.text == "I hit two random players for 3 damage each: \nif I lose half of my HP, \nI only attack once." && number_of_players > 1) {
+                    else if (currentBossmove[0] == "Attack" && number_of_players > 1) {
                         var playertargets = this.sample_range(sample,2);
                         console.log(sample);
-                        this.bosslog.text = "I hit player " + sample[0] + " and player " + sample[1] + " for 3 damage each: \nif I lose half of my HP, \nI only attack once.";
-
+                        if(this.bossHealth/this.bossMaxHealth <= 0.5)
+                            this.bosslog.text = "I hit player " + random + " for 3 damage.";
+                        else
+                            this.bosslog.text = "I hit player " + random + " and player " + random2 + " for 3 damage each.";
                     }
-                    else if (this.bosslog.text == "I hit two random players for 3 damage each: \nif I lose half of my HP, \nI only attack once." && number_of_players == 1) {
-                        
-                        this.bosslog.text = "I hit player " + random3  + " for 3 damage. \nif I lose half of my HP, \nI miss the attack.";
-
+                    else if (currentBossmove[0] == "Attack" && number_of_players == 1) {
+                        if(this.bossHealth/this.bossMaxHealth <= 0.5)
+                            this.bosslog.text = "I hit player 1 twice for 3 damage each.";
+                        else
+                        this.bosslog.text = "I hit player 1 for 3 damage.";
                     }
                     this.damagetook = 0;
                     
@@ -311,7 +321,7 @@ class Beloved extends Phaser.Scene {
                 else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == false &&this.bossPhase == true) {
                     let nextmove = this.Beloved.announce();
                     
-                    this.bosslog.text = "The boss's next move is: " +nextmove;
+                    this.bosslog.text = "I am going to " +nextmove;
                     this.bossPhase = false;
                     this.actionPhase = false;
                     this.announcePhase = true;
@@ -329,7 +339,9 @@ class Beloved extends Phaser.Scene {
             if (this.bossHealth >= 0 && !isNaN(playerdmg) && this.actionPhase == true){
                 this.damage(playerdmg);
                 //this.bosslog.text = this.Beloved.announce();
-                }
+            }
+        
+            playerdmg = 0;
    
         }
         //Ends players' turn or shows the next boss's announcement/move

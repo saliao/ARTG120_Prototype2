@@ -13,9 +13,6 @@ class Traveler extends Phaser.Scene {
         this.numbersArray = []; //Not used
         this.currentNumberText = null;//Not used
         this.entryLineText = null;//Not used
-        
-
-        
     }
     preload() {
         // load images/tile sprites
@@ -88,7 +85,10 @@ class Traveler extends Phaser.Scene {
         // make Traveler boss
         //Making const TravlerMoves a List of typed out moves of the Traveler based on the rule's sheet or card.
         const TravelerMoves = ["Attack: I hit a random player for 3 damage","Flurry: I attack each player twice: I make one last attack for each time I was hit the last round", "Purity: I remove all debuffs placed on me", "Parry: Next time I would take damage, reduce it to 0 and deal 2 damage to the attacker."];
-        this.TravelerMoves2 = [["Attack", "I hit a random player for 3 damage"],["Flurry", "I attack each player twice: \nI make one last attack for \neach time I was hit the last round"], ["Purity", "I remove all debuffs placed on me"], ["Parry", "Next time I would take damage, \nreduce it to 0 and deal 2 damage \nto the attacker."]];
+        this.TravelerMoves2 = [["Attack", ["Attack", "I hit a random player for 3 damage"]],
+                                ["perform a Special Attack", ["Flurry", "I attack each player for 3 damage twice\n+1 for each time I was hit the last turn."]],
+                                ["Buff myself", ["Purity", "I remove all debuffs placed on me"]],
+                                ["Buff myself", ["Parry", "Next time I would take damage,\nI reduce it to 0 and deal 2 damage to the attacker."]]];
         //create the Travler boss sprite and also pass its moves over for announce() later.
         this.Traveler = new Boss(this, game.config.width/2, game.config.height/3, 'traveler', this.TravelerMoves2, 40,).setOrigin(0.5, 0).setScale(0.35);
         
@@ -100,7 +100,7 @@ class Traveler extends Phaser.Scene {
         //console.log(this.Traveler.announce());
         //this.bosslog.text = this.Traveler.announce();
         //this.MoveElement = this.TravelerMoves2[this.Traveler.announce()];
-        this.bosslog.text = "The boss's next move is: " +this.Traveler.announce();
+        this.bosslog.text = "I am going to " + this.Traveler.announce();
         
         this.nexturnDialogue = this.add.text(game.config.width/2, game.config.height/2 - 1.9* borderUISize, '').setOrigin(0.5);
         //console.log(this.Traveler.announce());
@@ -111,7 +111,7 @@ class Traveler extends Phaser.Scene {
         this.add.text(20, 110, 'Click grey textbox to start editing\ndamage calculation.');
 
         //Instruction text below the health bar that says to press left arrow and end turn for the boss's next announcement
-        this.add.text(20, 70, 'Press right arrow to switch or move\nto the next turn');
+        this.add.text(20, 70, 'Press right arrow to move\nto the next turn');
         this.add.text(20, 150, 'press enter key to damage the boss. \n*note that this is for players turn only.');
         //Adding REXUI textfield now
         game.config.dom = true;
@@ -151,6 +151,7 @@ class Traveler extends Phaser.Scene {
             },
             onClose: function (textObject) {
                 console.log('Close text editor');
+                textObject.text = 0;
             },
             selectAll: true,
             // enterClose: false
@@ -170,7 +171,7 @@ class Traveler extends Phaser.Scene {
     }
 
     //I found a example of a healthBar function.  It makes a retangular bar and takes x, y, color and health as arguments
-    makeBar(x, y,color,health) {
+    makeBar(x, y,color) {
         //draw the bar
         let bar = this.add.graphics();
 
@@ -178,7 +179,7 @@ class Traveler extends Phaser.Scene {
         bar.fillStyle(color, 1);
 
         //fill the bar with a rectangle
-        bar.fillRect(0, 0, health*10, 50);//the height of the rectangle is 50 pixels, width is health*height
+        bar.fillRect(0, 0, game.config.width, 50);//the height of the rectangle is 50 pixels, width is health*height
         
         //position the bar
         bar.x = x;
@@ -200,7 +201,7 @@ class Traveler extends Phaser.Scene {
             this.bossHealth = 0;
         }
         else {
-            this.bossHealth = this.bossHealth-n;
+            this.bossHealth = this.bossHealth-n;//the height of the rectangle is 50 pixels, width is health*height
         }
         /*
         //Segment below was trying to test tweening, but errors occured
@@ -244,7 +245,7 @@ class Traveler extends Phaser.Scene {
             
         }
         if(this.bossPhase == true) {
-            this.phase.text = "Boss's Turn";
+            this.phase.text = currentBossmove[0];
             this.phase.color = '#880808';
             
         }
@@ -269,41 +270,36 @@ class Traveler extends Phaser.Scene {
                 
                 }   
             else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == true &&this.bossPhase == false){
-                this.bosslog.text = currentBossmove;
+                this.bosslog.text = currentBossmove[1];
                 this.actionPhase = false;
                 this.announcePhase = false;
                 this.bossPhase = true;
                 let random = Math.floor((Math.random()*number_of_players)+1);
-                if (this.bosslog.text == 'I hit a random player for 3 damage') {
+                if (currentBossmove[0] == 'Attack') {
                     this.bosslog.text = 'I hit player ' + random + ' for 3 damage';
-        
                 }
                 
             }
             else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == false &&this.bossPhase == true) {
                 let nextmove = this.Traveler.announce();
                 
-                this.bosslog.text = "The boss's next move is: " +nextmove;
+                this.bosslog.text = "I am going to " +nextmove;
                 this.bossPhase = false;
                 this.actionPhase = false;
                 this.announcePhase = true;
                 this.round++;
                 console.log(this.round);
-                
             }
         }
         //Press Enter to damage the boss
         if (Phaser.Input.Keyboard.JustDown(keyENTER)) {
-            
-            
             console.log("damage");
             console.log(playerdmg);
             if (this.bossHealth >= 0 && !isNaN(playerdmg) &&this.actionPhase == true){
                 this.damage(playerdmg);
                 //this.bosslog.text = this.Traveler.announce();
-                
-                }
-   
+                playerdmg = 0;
+            }
         }
         
         //if (Phaser.Input.Keyboard.JustDown(keyDown)) {

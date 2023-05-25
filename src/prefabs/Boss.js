@@ -54,12 +54,9 @@ class Boss extends Phaser.GameObjects.Sprite {
         let type = this.moves[this.selection][0];
         currentBossmove = this.moves[this.selection][1];
         return type; 
-        
     }
     turn() {
         //For future implmentation for return the turn number and what type of move the boss is doing.
         return this.moves[this.selection][1];
-        
-        
     }
 }

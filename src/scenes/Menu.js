@@ -64,7 +64,7 @@ class Menu extends Phaser.Scene {
         });
 
         //Text on the bottom-left of the Menu screen telling the player what to do.
-        this.add.text(20, 665, 'Click text to start editing, press enter key to stop editing and begin game');
+        //this.add.text(20, 665, "Use the text box below to enter damage on the players' turn");
         
         let menuConfig = {
             fontFamily: 'fantasy',
@@ -86,6 +86,8 @@ class Menu extends Phaser.Scene {
 
         //Text right above the textfield in the Menu, below Game title.
         this.add.text(game.config.width/2, game.config.height/2, 'Enter the number of players below.', menuConfig).setOrigin(0.5);
+
+        this.add.text(20, 20, "First the boss will make an annoucement for what they will do on their turn.\nNext is the players' turn.\nThe players will strategize according to the boss' next action.\nEach player uses one of their Hero's actions and any damage\ndealt to the boss is entered into the entry box.\nNext is the boss' turn where they complete the action that was announced.\nThen a new round begins.\n\nThe players are responsible for keeping track of their own health (20 MAX)\nand any active statuses with the help of tokens.");
         
         // define keys
         keyLEFT = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);

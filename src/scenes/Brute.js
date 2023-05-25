@@ -13,9 +13,6 @@ class Brute extends Phaser.Scene {
         this.numbersArray = []; //Not used
         this.currentNumberText = null; //Not used
         this.entryLineText = null; //Not used
-        
-
-        
     }
     preload() {
         
@@ -33,8 +30,9 @@ class Brute extends Phaser.Scene {
         this.bossPhase = false;
         this.fatalattack = false;
         this.brace = false;
-        this.Enrage = false;
+        this.enrage = false;
         this.bonusdmg = 0;
+        this.nextmove = "";
         //This sets playerdmg to zero initially because the room just got created, and no damage exist yet.
         playerdmg = 0;
 
@@ -94,7 +92,10 @@ class Brute extends Phaser.Scene {
         // make Brute boss
         //Making const BruteMoves a List of typed out moves of the Brute based on the rule's sheet or card.
         const BruteMoves = ["Attack: I hit a random player for 5 damage", "Savage Blow: I take no action this round: next round I hit a random player for 12 damage",  "Enrage: I deal 1 more damage when I attack.", "Brace: I gain 10 temporary HP that persists between rounds if not removed."];
-        this.BruteMoves2 = [["Attack", "I hit a random player for 5 damage"],["Savage Blow", "I take no action this round: \nnext round I hit a random player for 12 damage"], ["Enrage", "I deal 1 more damage when I attack."], ["Brace", "I gain 10 temporary HP that \npersists between rounds if not removed."]];
+        this.BruteMoves2 = [["Attack", ["Attack", "I hit a random player for 5 damage"]],
+                            ["perform a Special Move", ["Savage Blow", "I take no action this round: \nnext round I hit a random player for 12 damage"]],
+                            ["Buff myself", ["Enrage", "I deal 1 more damage when I attack."]],
+                            ["Buff myself", ["Brace", "I heal for 10 HP that persists between rounds if not removed."]]];
         //create the Brute boss sprite and also pass its moves over for announce() later.
         this.Brute = new Boss(this, game.config.width/2, game.config.height/3, 'brute', this.BruteMoves2, 40,).setOrigin(0.5, 0).setScale(0.35);
         
@@ -109,7 +110,7 @@ class Brute extends Phaser.Scene {
         //console.log(this.Traveler.announce());
         //this.bosslog.text = this.Traveler.announce();
         //this.MoveElement = this.TravelerMoves2[this.Traveler.announce()];
-        this.bosslog.text = "The boss's next move is: " +this.Brute.announce();
+        this.bosslog.text = "I am going to " +this.Brute.announce();
         
         this.nexturnDialogue = this.add.text(game.config.width/2, game.config.height/2 - 1.9* borderUISize, '').setOrigin(0.5);
         //console.log(this.Traveler.announce());
@@ -120,7 +121,7 @@ class Brute extends Phaser.Scene {
         this.add.text(20, 110, 'Click grey textbox to start editing\ndamage calculation.');
 
         //Instruction text below the health bar that says to press left arrow and end turn for the boss's next announcement
-        this.add.text(20, 70, 'Press right arrow to switch or move\nto the next turn');
+        this.add.text(20, 70, 'Press right arrow to move\nto the next turn');
         this.add.text(20, 150, 'press enter key to damage the boss. \npress left arrow to debuff boss.\n*note only works during action phase.');
         
         //Adding REXUI textfield now
@@ -161,6 +162,7 @@ class Brute extends Phaser.Scene {
             },
             onClose: function (textObject) {
                 console.log('Close text editor');
+                textObject.text = 0;
             },
             selectAll: true,
             // enterClose: false
@@ -181,7 +183,7 @@ class Brute extends Phaser.Scene {
     }
 
     //I found a example of a healthBar function.  It makes a retangular bar and takes x, y, color and health as arguments
-    makeBar(x, y,color,health) {
+    makeBar(x, y,color) {
         //draw the bar
         let bar = this.add.graphics();
 
@@ -189,7 +191,7 @@ class Brute extends Phaser.Scene {
         bar.fillStyle(color, 1);
 
         //fill the bar with a rectangle
-        bar.fillRect(0, 0, health*10, 50); //the height of the rectangle is 50 pixels, width is health*height
+        bar.fillRect(0, 0, game.config.width, 50);//the height of the rectangle is 50 pixels, width is health*height
         
         //position the bar
         bar.x = x;
@@ -211,7 +213,7 @@ class Brute extends Phaser.Scene {
             this.bossHealth = 0;
         }
         else {
-            this.bossHealth = this.bossHealth-n;
+            this.bossHealth -= n;
         }
         /*
         //Segment below was trying to test tweening, but errors occured
@@ -231,17 +233,16 @@ class Brute extends Phaser.Scene {
             },
         });
         */
-        this.setValue(this.BosshealthBar,((this.bossHealth)/this.bossMaxHealth));
+        this.setValue(this.BosshealthBar,(this.bossHealth/this.bossMaxHealth));
     }
     heal(n){
         if(this.bossHealth < 0) {
             this.bossHealth = 0;
         }
         else {
-            this.bossHealth = this.bossHealth+n;
+            this.bossHealth += n;
         }
-
-        this.setValue(this.BosshealthBar,((this.bossHealth)/this.bossMaxHealth));
+        this.setValue(this.BosshealthBar,(this.bossHealth/this.bossMaxHealth));
     }
     
     update() {
@@ -257,7 +258,7 @@ class Brute extends Phaser.Scene {
             
         }
         if(this.bossPhase == true) {
-            this.phase.text = "Boss's Turn";
+            this.phase.text = currentBossmove[0];
             this.phase.color = '#880808';
             
         }
@@ -286,55 +287,49 @@ class Brute extends Phaser.Scene {
                 
                 }   
             else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == true &&this.bossPhase == false){
-                this.bosslog.text = currentBossmove;
+                this.bosslog.text = currentBossmove[1];
                 this.actionPhase = false;
                 this.announcePhase = false;
                 this.bossPhase = true;
                 let random = Math.floor((Math.random()*number_of_players)+1);
                 let random2 = Math.floor((Math.random()*number_of_players)+1);
                 if (this.fatalattack == true){
-                    this.bosslog2.text = 'I hit player ' + random2 + ' for 12 damage';
+                    this.bosslog.text = 'I hit player ' + random2 + ' for ' + (12+this.bonusdmg) + ' damage';
                     this.fatalattack = false;
                 }
-                if (this.bosslog.text == 'I hit a random player for 5 damage') {
-                    this.bosslog.text = 'I hit player ' + random + ' for 5 damage';
+                else if (currentBossmove[0] == 'Attack') {
+                    this.bosslog.text = 'I hit player ' + random + ' for ' + (5+this.bonusdmg) + '  damage';
         
                 }
-                else if (this.bosslog.text == 'I take no action this round: \nnext round I hit a random player for 12 damage') {
-                    
+                else if (currentBossmove[0] == 'Savage Blow') {
+                    this.bosslog.text = 'I am charging up an attack.'
                     this.fatalattack = true;
-        
                 }
-                else if (this.bosslog.text == 'I deal 1 more damage when I attack.') {
+                else if (currentBossmove[0] == 'Enrage') {
                     this.enrage = true;
                     this.bonusdmg++;
-                    this.bossstatus1.text = 'Enrage: On, Brute Deals +' + this.bonusdmg;
+                    this.bossstatus1.text = 'On attack, Brute Deals +' + this.bonusdmg;
         
                 }
-                else if (this.bosslog.text == 'I gain 10 temporary HP that \npersists between rounds if not removed.') {
-                    
+                else if (currentBossmove[0] == 'Brace') {
                     this.brace = true;
-                    this.bossstatus2.text = 'Brace: On, Brute heals 10 every round';
-        
+                    this.bossstatus2.text = 'Brace: I heal 10 every round';
                 }
-                
-                
+                if(this.brace==true){
+                    this.heal(10);
+                }
             }
             else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == false &&this.bossPhase == true) {
                 this.bosslog2.text = '';
-                let nextmove = this.Brute.announce();
+                if(this.fatalattack == false)
+                    this.nextmove = this.Brute.announce();
                 
-                this.bosslog.text = "The boss's next move is: " +nextmove;
+                this.bosslog.text = "I am going to " + this.nextmove;
                 this.bossPhase = false;
                 this.actionPhase = false;
                 this.announcePhase = true;
                 this.round++;
-                if(this.brace==true){
-                    this.heal(10);
-                }
-                
                 console.log(this.round);
-                
             }
         }
         //Press Enter to damage the boss
@@ -346,7 +341,9 @@ class Brute extends Phaser.Scene {
             if (this.bossHealth >= 0 && !isNaN(playerdmg)&&this.actionPhase == true){
                 this.damage(playerdmg);
                 //this.bosslog.text = this.Brute.announce();
-                }
+            }
+            
+            playerdmg = 0;
    
         }
         //Ends players' turn or shows the next boss's announcement/move

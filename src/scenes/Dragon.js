@@ -86,12 +86,14 @@ class Dragon extends Phaser.Scene {
         //this.input.keyboard.on('keydown', this.handleInput, this); 
 
         let bossList; //Not used
-        this.num_rubble = Math.floor((Math.random()*number_of_players)+1);
 
         // make Dragon boss
         //Making const DragonMoves a List of typed out moves of the Traveler based on the rule's sheet or card.
         const DragonMoves = ["Attack: I hit a random player for 8 damage","Fire Breath: I bellow fire to hit all players for 6 damage", "Cave-In: I smash the ground dealing 2 damage to all players and causing " +this.num_rubble+" rubble to fall on random players for 2 damage each next round", "Scale Armor: Whenever I take damage, reduce it by 2, this stacks."];
-        this.DragonMoves2 = [["Attack", "I hit a random player for 8 damage"],["Fire Breath", "I bellow fire to hit all players for 6 damage"],["Cave-In","I smash the ground dealing 2 damage to all players\ncausing " + this.num_rubble+ " rubble to fall on \nrandom players for 2 damage each round"], ["Scale Armor", "Whenever I take damage, \nreduce it by 2, this stacks."]];
+        this.DragonMoves2 = [["Attack", ["Attack", "I hit a random player for 8 damage"]],
+                            ["perform a Special Attack", ["Fire Breath", "I bellow fire to hit all players for 6 damage"]],
+                            ["perform a Special Attack", ["Cave-In", "I smash the ground dealing 2 damage to all players\ncausing " + this.num_rubble + " rubble to fall on \n" + this.num_rubble + "random players for 2 damage each round"]],
+                            ["Buff myself", ["Scale Armor", "Whenever I take damage, \nreduce it by 2, this stacks."]]];
         //create the Dragon boss sprite and also pass its moves over for announce() later.
         this.Dragon = new Boss(this, game.config.width/2, game.config.height/3, 'dragon', this.DragonMoves2, 40,).setOrigin(0.5, 0).setScale(0.35);
         
@@ -101,7 +103,7 @@ class Dragon extends Phaser.Scene {
         //this is the text that shows what the bosses's move is.
         this.bosslog2 = this.add.text(game.config.width/2, game.config.height/2 - 4.5* borderUISize, '').setOrigin(0.5);
         this.bosslog = this.add.text(game.config.width/2, game.config.height/2 - 3* borderUISize, '').setOrigin(0.5);
-        this.bosslog.text = "The boss's next move is: " +this.Dragon.announce();
+        this.bosslog.text = "I am going to " +this.Dragon.announce();
         this.bossstatus1 = this.add.text(20, game.config.height -  2*borderUISize, 'Scale Armor: '+this.scalearmor,menuConfig);
         this.nexturnDialogue = this.add.text(game.config.width/2, game.config.height/2 - 1.9* borderUISize, '').setOrigin(0.5);
         
@@ -113,7 +115,7 @@ class Dragon extends Phaser.Scene {
         this.add.text(20, 110, 'Click grey textbox to start editing\ndamage calculation.');
 
         //Instruction text below the health bar that says to press left arrow and end turn for the boss's next announcement
-        this.add.text(20, 70, 'Press right arrow to switch or move\nto the next turn');
+        this.add.text(20, 70, 'Press right arrow to move\nto the next turn');
         this.add.text(20, 150, 'press enter key to damage the boss. \npress left arrow to debuff boss.\n*note only works during action phase.');
         
         //Adding REXUI textfield now
@@ -154,6 +156,7 @@ class Dragon extends Phaser.Scene {
             },
             onClose: function (textObject) {
                 console.log('Close text editor');
+                textObject.text = 0;
             },
             selectAll: true,
             // enterClose: false
@@ -173,7 +176,7 @@ class Dragon extends Phaser.Scene {
     }
 
     //I found a example of a healthBar function.  It makes a retangular bar and takes x, y, color and health as arguments
-    makeBar(x, y,color,health) {
+    makeBar(x, y,color) {
         //draw the bar
         let bar = this.add.graphics();
 
@@ -181,7 +184,7 @@ class Dragon extends Phaser.Scene {
         bar.fillStyle(color, 1);
 
         //fill the bar with a rectangle
-        bar.fillRect(0, 0, health*10, 50);
+        bar.fillRect(0, 0, game.config.width, 50);//the height of the rectangle is 50 pixels, width is health*height
         
         //position the bar
         bar.x = x;
@@ -223,7 +226,6 @@ class Dragon extends Phaser.Scene {
             },
         });
         */
-       
         this.setValue(this.BosshealthBar,((this.bossHealth)/this.bossMaxHealth));
     }
     heal(n){
@@ -260,7 +262,7 @@ class Dragon extends Phaser.Scene {
         
 
         if(this.bossPhase == true) {
-            this.phase.text = "Boss's Turn";
+            this.phase.text = currentBossmove[0];
             this.phase.color = '#880808';
             
         }
@@ -284,43 +286,37 @@ class Dragon extends Phaser.Scene {
                 
                 }   
             else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == true &&this.bossPhase == false){
-                this.bosslog.text = currentBossmove;
+                this.bosslog.text = currentBossmove[1];
                 
                 let random = Math.floor((Math.random()*number_of_players)+1);
+                let target;
                 var sample = [];
-                    for(var i =0; i < number_of_players; i++){
-                        sample.push(i+1);
-                    }
-                if (this.bosslog.text == 'I hit a random player for 8 damage') {
+                for(var i=1; i < number_of_players; i++){
+                    do
+                        target = Math.floor((Math.random()*number_of_players)+1)
+                    while(sample.includes(target) == true)
+                    sample.push(target);
+                }
+                if (currentBossmove[0] == 'Attack') {
                     this.bosslog.text = 'I hit player ' + random + ' for 8 damage';
         
                 }
-                else if (this.bosslog.text == 'Whenever I take damage, \nreduce it by 2, this stacks.') {
+                else if (currentBossmove[0] == 'Scale Armor') {
                     this.scalearmor += 2;
         
                 }
-                else if (this.bosslog.text == "I smash the ground dealing 2 damage to all players\ncausing "+ this.num_rubble+ " rubble to fall on \nrandom players for 2 damage each round" && number_of_players > 1) {
+                else if (currentBossmove[0] == "Cave-In") {
                     this.rubblefalling = true;
-                    var playertargets = this.sample_range(sample,this.num_rubble);
-                    this.bosslog2.text = 'Players hit by rubble for 2 damage: '+sample;
-                    console.log(sample);
-
-
-        
+                    this.num_rubble = Math.floor((Math.random()*number_of_players)+1);
+                    this.bosslog.text = "I smash the ground dealing 2 damage to all players\ncausing rubble to fall on " + this.num_rubble + " random players for 2 damage each round"
                 }
-                else if (this.bosslog.text == "I smash the ground dealing 2 damage to all players\ncausing "+ this.num_rubble+ " rubble to fall on \nrandom players for 2 damage each round" && number_of_players == 1) {
-                    this.rubblefalling = true;
-                    var playertargets = this.sample_range(sample,this.num_rubble);
-                    this.bosslog.text = "I smash the ground dealing 2 damage to all players\ncausing "+ 1+ " rubble to fall on one player for 2 damage each round";
-                    this.bosslog2.text = 'Players hit by rubble for 2 damage: '+1;
+                if (this.rubblefalling == true && number_of_players > 1) {
+                    this.bosslog2.text = 'Players hit by rubble for 2 damage: '+ sample;
                     console.log(sample);
-
-
-        
                 }
-                else if (this.bosslog.text == 'I hit a random player for 3 damage') {
-                    this.bosslog.text = 'I hit player ' + random + ' for 3 damage';
-        
+                else if (this.rubblefalling == true && number_of_players == 1) {
+                    this.bosslog2.text = 'Player 1 is hit by rubble for 2 damage';
+                    console.log(sample);
                 }
                 console.log('hi');
                 this.actionPhase = false;
@@ -331,7 +327,7 @@ class Dragon extends Phaser.Scene {
             else if (this.bossHealth > 0 && this.announcePhase == false && this.actionPhase == false &&this.bossPhase == true) {
                 let nextmove = this.Dragon.announce();
                 this.bosslog2.text = '';
-                this.bosslog.text = "The boss's next move is: " +nextmove;
+                this.bosslog.text = "I am going to " +nextmove;
                 this.bossPhase = false;
                 this.actionPhase = false;
                 this.announcePhase = true;
@@ -354,7 +350,8 @@ class Dragon extends Phaser.Scene {
                     this.damage(playerdmg-this.scalearmor);
                 }
                 //this.bosslog.text = this.Dragon.announce();
-                }
+            }
+            playerdmg = 0;
    
         }
         //Ends players' turn or shows the next boss's announcement/move
