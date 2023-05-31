@@ -119,7 +119,7 @@ class Menu extends Phaser.Scene {
             }
             //If number_of_players is not NaN and greater or equal to 1, we can go to the traveler
             else if (!isNaN(number_of_players) && number_of_players >= 1) {
-                this.scene.start("travelerScene");
+                this.scene.start("playScene");
             }    
         }
         //The keyRight input is not actually needed, just some debugging or for future credits and tutorial scene

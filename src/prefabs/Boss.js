@@ -4,25 +4,44 @@
 //As of right now this only makes a sprite object and also an announce function that return what move the boss randomly picked.
 
 class Boss extends Phaser.GameObjects.Sprite {
-    constructor(scene, x, y, texture, moves, maxHealth, frame) {
+    constructor(scene, x, y, texture, moves, maxHealth, name, frame) {
         super(scene, x, y, texture, frame);
+        this.name = name;
         scene.add.existing(this);
         //this.name = name;
-        this.bossHealth = 100; //Not used
+        this.bossHealth = maxHealth; //Not used
         this.bossMaxHealth = maxHealth; //Not used
-
+        this.healthBar = this.makeBar(0,0,0x2ecc71,this.bossHealth);
         //Defines moves as the passed in list of moves
         this.moves = moves;
         this.selection = -1;
     }
-    
+    makeBar(x, y,color) {
+        //draw the bar
+        let bar = this.scene.add.graphics();
+
+        //color the bar
+        bar.fillStyle(color, 1);
+
+        //fill the bar with a rectangle
+        bar.fillRect(0, 0, game.config.width, 50);//the height of the rectangle is 50 pixels, width is health*height
+        
+        //position the bar
+        bar.x = x;
+        bar.y = y;
+
+        //return the bar
+        return bar;
+    }
+    setValue(bar,percentage) {
+        //scale the bar
+        bar.scaleX = percentage;
+    }
     create() {
         //This cannot create a health bar so some reason..
 
-        //this.healthBar = this.add.sprite(game.config.width/2, game.config.height/2, 'healthBar');
-        //this.healthMask = this.make.graphics();
-        //this.healthMask.fillRect(x, y, 100, 10);
-        //this.healthBar.mask = new Phaser.Display.Masks.GraphicsMask(this, this.healthMask);
+     
+        
         
     }
 
@@ -31,17 +50,18 @@ class Boss extends Phaser.GameObjects.Sprite {
         this.bossHealth -= n;
         if(this.bossHealth < 0)
             this.bossHealth = 0;
-        let newWidth = 100 * (this.bossHealth / this.bossMaxHealth);
-        this.scene.tweens.add({
+        //let newWidth = 100 * (this.bossHealth / this.bossMaxHealth);
+      /*  this.scene.tweens.add(this,{
             targets: this.healthMask,
             duration: 200, // Replace with desired duration of animation in milliseconds
             ease: Phaser.Math.Easing.Linear,
             x: this.x + newWidth,
             onComplete: () => {
-                //this.healthMask.clear();
+                this.healthMask.clear();
                 this.healthMask.fillRect(x, y, newWidth, height);
             },
-        });
+        });*/
+        this.setValue(this.healthBar,((this.bossHealth)/this.bossMaxHealth));
     }
     announce() {
         //It randomly selects a move.  this.moves is a list of moves passed into the parameter.
@@ -58,5 +78,15 @@ class Boss extends Phaser.GameObjects.Sprite {
     turn() {
         //For future implmentation for return the turn number and what type of move the boss is doing.
         return this.moves[this.selection][1];
+    }
+    heal(n){
+        if(this.bossHealth < 0) {
+            this.bossHealth = 0;
+        }
+        else {
+            this.bossHealth = this.bossHealth+n;
+        }
+
+        this.setValue(this.BosshealthBar,((this.bossHealth)/this.bossMaxHealth));
     }
 }
